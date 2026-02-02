@@ -1,0 +1,23 @@
+//Ray class group computations
+
+//Real quadratic fields:
+
+for d in [3,5,11,13,19,29] do
+    K<a>:=QuadraticField(d);
+    OK:=MaximalOrder(K);
+
+    print "d=", d;
+    RayClassGroup(1*OK,[1,2]);
+    print "++++++++++++++++++++++++++++++++";
+end for;
+
+//Imaginary quadratic fields:
+
+for d in [-3,-11,-19,-43] do
+    K<a>:=QuadraticField(d);
+    OK:=MaximalOrder(K);
+
+    print "d=", d;
+    RayClassGroup(1*OK);
+    print "++++++++++++++++++++++++++++++++";
+end for;
