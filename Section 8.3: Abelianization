@@ -1,0 +1,60 @@
+AttachSpec("/home/p320032/KleinianGroups/klngpspec"); 
+
+
+
+import "/home/p320032/KleinianGroups/bianchi.m" : QuatToMatrix; 
+
+import "/home/p320032/KleinianGroups/geometry/volumes.m" : ComputeZetas;
+print "precomputing coefficients...";
+zetas := ComputeZetas(100);
+print "...done.\n\n";
+
+Gamma0_abel:=function(prime, ord, power, q, G, Generators);
+Mat0 := [QuatToMatrix(g) : g in Generators];
+	K := Parent(Mat0[1][1,1]);
+	OK := MaximalOrder(K);
+	R := MatrixAlgebra(OK,2);
+	MatGen := [R ! m : m in Mat0];
+	/* Append(~MatGen, (R ! Matrix(OK,2,2,[-1,0,0,1])));*/
+	I := (Factorization(prime*OK)[ord,1])^(power)*Factorization(q*OK)[1,1];
+
+	PL,r := ProjectiveLine(quo<OK|I>);
+	proj_action := function(M,i)
+		t,im :=r(PL[i]*M,true,false);
+		return Index(PL,im);
+	end function;
+
+	Seq := [[] : m in MatGen];
+	for j in [1..#Seq] do
+		for i in [1..#PL] do
+			Append(~Seq[j], proj_action(MatGen[j],i));
+		end for;
+	end for;
+
+	Symm := Sym(#PL);
+	p := [Symm!el : el in Seq];
+
+	f := hom<G -> Symm | p>;
+	H := sub<G | f>;
+
+	return AQInvariants(H);
+end function;
+
+PresPGL2 := function(d)
+	O := BianchiOrder(d);
+	_, Faces, Edges := NormalizedBasis(O : GroupType :="Units", zetas := zetas);
+	PG, PGenerators := Presentation(Faces, Edges, O);
+	return PG, PGenerators;
+end function;
+
+Abelianization1 := function(d, prime, ord, power, q)
+	PG, PGenerators := PresPGL2(d);
+	return Gamma0_abel(prime,ord, power, q, PG, PGenerators);
+end function;
+
+for d in [-3,-11,-19,-43,-67,-163] do
+	for i in [0,1] do
+	print "Output for d = " cat IntegerToString(d) cat ", and i = " cat IntegerToString(i);
+	Abelianization1(d,2,1,i,-d);
+	end for;
+end for;
