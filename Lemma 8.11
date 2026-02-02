@@ -1,0 +1,160 @@
+//For real quadratic fields:
+
+for d in [3,5,11,13,19,29] do
+
+    K<a> := QuadraticField(d);
+    OK := MaximalOrder(K);
+    P:= Factorization(2*OK)[1,1];
+    Q:=Factorization(d*OK)[1,1];
+
+
+    Aq := function(q);      
+        return { Integers()| a : a in [Ceiling(-2*Sqrt(Norm(q)))..Floor(2*Sqrt(Norm(q)))] | (Norm(q)+1-a) mod 2 eq 0};
+    end function;
+
+    function B(f,q)
+        OQf:=Integers(HeckeEigenvalueField(f));
+        myIdeal:=ideal<OQf|1>;
+        a_qf:=HeckeEigenvalue(Eigenform(f),q);
+        for a in Aq(q) do
+            myIdeal:=myIdeal*(ideal<OQf | a-a_qf>);
+        end for; 
+        myIdeal:=myIdeal*(ideal<OQf|Norm(q)*((Norm(q)+1)^2-a_qf^2)>);
+        return myIdeal;
+    end function;
+
+    function BS(f,S)
+        OQf:=Integers(HeckeEigenvalueField(f));
+        BfS:=ideal<OQf|0>;
+       zeroideal:=ideal<OQf|0>;
+        for l in S do
+            BfS:=BfS+B(f,l);
+        end for;
+        return Integers()!Norm(BfS);
+    end function;
+
+    function survivingPrimesWithForms(level,S)
+	    M:=HilbertCuspForms(K,level);
+	    MN:=NewSubspace(M);
+        eigenspaces:=NewformDecomposition(MN);
+        survivors:=[* *];
+        survivingPrimes:=[* *];
+        for f in eigenspaces do
+            Cff:=BS(f,S);
+            if Cff eq 0 then
+                print "Cff is 0";
+                survivors:=Append(survivors,[* f, [* 0 *] *]);
+                continue;
+            end if;
+            print "Factorize Cff=", Factorization(Cff);
+            survivingPrimes:=[l : l in PrimeDivisors(Norm(Cff))];
+            survivors:=Append(survivors,[* f, survivingPrimes *]);
+        end for;
+        return survivors;
+    end function;
+
+    S:=[P : P in PrimesUpTo(50,K) | IsOdd(Norm(P)) and IsPrime(Norm(P)) and P ne Q];
+
+    //Checking the levels Q & P*Q
+
+    for i in [0,1] do
+        print "d=", d, "and", "i=", i, ":";
+        level := P^i*Q;
+        survivingPrimesWithForms(level, S);
+        print "+++++++++++++++++++++++++++++++";
+    end for;
+
+end for;
+
+
+//For imaginary quadratic fields with d=-3,-11,-19,-43 and levels \lambda^i*\mathfrak{D}, where i=0,1
+
+R<x>:= PolynomialRing(Rationals());
+d:=19; //Vary d
+K := NumberField(x^2+d);
+OK := Integers(K);
+frakP:= Factorization(2*OK)[1][1];
+frakD:= Factorization(d*OK)[1][1];
+level := frakP*frakD; //Also check the level frakD
+
+
+function conditionCheck(prime,bound)
+    return (Norm(level) mod Norm(prime) ne 0 and Norm(prime) lt bound); 
+end function;
+
+function primeIdealsUpTo(bound,order,cond)
+    S:=[* *];
+    for k:=2 to bound do
+        if IsPrime(k) then
+            for p in Factorization(k*order) do
+                if cond(p[1],bound) then
+                    S:=Append(S,p[1]);
+                end if;
+            end for;
+        end if;
+    end for;
+    return S;
+end function;
+
+
+function bianchiModFormList(myfield,the_level)
+    cuspFormSpace := BianchiCuspForms(myfield, the_level);
+    print "Cusp Form Space", cuspFormSpace;
+    print "Dimension of the space", Dimension(cuspFormSpace);
+    newspace:=NewSubspace(cuspFormSpace);
+    eigenspaces:=NewformDecomposition(newspace);
+    print "Size eigenforms", eigenspaces;
+    return eigenspaces;
+end function;
+
+function A(l)
+    return { Integers()| a : a in [Ceiling(-2*Sqrt(Norm(l)))..Floor(2*Sqrt(Norm(l)))] | (Norm(l)+1-a) mod 2 eq 0};
+end function;
+
+function B(f,l)
+    OQf:=Integers(HeckeEigenvalueField(f));
+    myIdeal:=ideal<OQf|1>;
+    a_lf:=HeckeEigenvalue(Eigenform(f),l);
+    print "a_l(f):",a_lf;
+    for a in A(l) do
+        myIdeal:=myIdeal*(ideal<OQf | a-a_lf>);
+    end for; 
+    myIdeal:=myIdeal*(ideal<OQf|Norm(l)*((Norm(l)+1)^2-a_lf^2)>);
+    return myIdeal;
+end function;
+
+
+function BS(f,S)
+    OQf:=Integers(HeckeEigenvalueField(f));
+   BfS:=ideal<OQf|0>;
+   zeroideal:=ideal<OQf|0>;
+    for l in S do
+        BfS:=BfS+B(f,l);
+        print "Our prime l:",l;
+        print "Bfl:",B(f,l);
+        if B(f,l) eq zeroideal then
+            print "For this value of l:",l,"B(f,l) is 0!";
+        end if;
+        print "BfS:",BfS;
+    end for;
+    //BfS:=&+[B(f,l):l in S];
+    return Integers()!Norm(BfS);
+end function;
+
+function listCffForS(level,S)
+    eigenspaces:=bianchiModFormList(K,level);
+    CffList:=[* *];
+    for f in eigenspaces do
+        Cff:=BS(f,S);
+        CffList:=Append(CffList,Cff);
+    end for;
+    return CffList;
+end function;
+
+S:=primeIdealsUpTo(50,OK,conditionCheck);
+print "printing S:";
+print S;
+print "------";
+print listCffForS(level,S);
+exit;
+
